@@ -25,3 +25,8 @@ We introduce a cross-domain referring remote sensing image segmentation task, co
 </div>
 
 
+### Friend links:
+- If you are interested in hyperspectral image classification, pixel-based classification, or information fusion, feel free to refer to [PatchwiseClsFra](https://github.com/quanweiliu/PatchwiseClsFra).
+- If you are interested in image semantic segmentation or information fusion, feel free to refer to [TilewiseSegFra](https://github.com/quanweiliu/TilewiseSegFra).
+- If you are interested in referring image semantic segmentation, feel free to refer to [ReferringSegFra](https://github.com/quanweiliu/ReferringSegFra).
+- This repository is inspired by [SAM3](https://github.com/facebookresearch/sam3) and [SAM3_LoRA](https://github.com/Sompote/SAM3_LoRA).
