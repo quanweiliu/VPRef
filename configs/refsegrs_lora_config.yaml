@@ -1,0 +1,76 @@
+# SAM3 LoRA Training Configuration — VaihingenRef Dataset
+# Referring segmentation on ISPRS Vaihingen with merged class masks
+
+model:
+  name: "facebook/sam3"
+
+# LoRA settings
+lora:
+  rank: 8  # 32
+  alpha: 16 # 64
+  dropout: 0.5 # 0.1
+
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "out_proj"
+    - "qkv"
+    - "proj"
+    - "fc1"
+    - "fc2"
+    - "c_fc"
+    - "c_proj"
+    - "linear1"
+    - "linear2"
+
+  apply_to_vision_encoder: true
+  apply_to_text_encoder: true
+  apply_to_geometry_encoder: true
+  apply_to_detr_encoder: true
+  apply_to_detr_decoder: true
+  apply_to_mask_decoder: true
+
+training:
+  dataset: "refsegrs"              # Use RefSegRS dataset (instead of COCO)
+  data_dir: "/home/icclab/Documents/lqw/DatasetMMF/RefSegRS/"
+  variant: "standard"                # concept, simple, standard or complex text descriptions
+
+  batch_size: 8
+  num_workers: 8
+
+  learning_rate: 5e-5
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+  max_grad_norm: 1.0
+
+  num_epochs: 10
+  warmup_steps: 200
+  lr_scheduler: "cosine"
+
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 100
+  save_total_limit: 5
+
+  mixed_precision: "bf16"
+  seed: 42
+  gradient_accumulation_steps: 8
+
+output:
+  output_dir: "outputs/sam3_lora_refsegrs"
+  logging_dir: "logs"
+  save_lora_only: true
+  push_to_hub: false
+
+evaluation:
+  metric: "iou"
+  save_predictions: false
+  compute_metrics_during_training: true
+
+hardware:
+  device: "cuda"
+  dataloader_pin_memory: true
+  use_compile: false

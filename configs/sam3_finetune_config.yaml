@@ -1,0 +1,83 @@
+# SAM3 LoRA Training Configuration for User's Dataset
+# Optimized for RTX 5090 32GB with custom dataset
+
+# Model settings
+model:
+  name: "facebook/sam3"
+  cache_dir: null
+
+# LoRA settings
+lora:
+  rank: 16                   # Good balance for 32GB GPU
+  alpha: 32                  # 2x rank (scaling factor)
+  dropout: 0.1               # Some dropout for regularization
+
+  # Target modules for SAM3 architecture
+  target_modules:
+    # Standard attention projections (for replaced MultiheadAttention modules)
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "out_proj"
+    # Vision backbone (ViT-style)
+    - "qkv"                  # Fused Q/K/V projection in vision backbone
+    - "proj"                 # Output projection in vision backbone attention
+    - "fc1"                  # Vision backbone MLP first layer
+    - "fc2"                  # Vision backbone MLP second layer
+    # Language backbone (CLIP-style)
+    - "c_fc"                 # Language backbone MLP first layer
+    - "c_proj"               # Language backbone MLP second layer
+    # Transformer encoder/decoder FFN
+    - "linear1"              # Transformer FFN first layer
+    - "linear2"              # Transformer FFN second layer
+
+  # Apply LoRA to key components for good performance
+  apply_to_vision_encoder: true    # Vision backbone (ViT) - Essential
+  apply_to_text_encoder: true      # Language backbone (CLIP text encoder) - Important for text prompts
+  apply_to_geometry_encoder: true  # Geometry encoder for prompts - Important
+  apply_to_detr_encoder: false     # DETR-style transformer encoder - Can be disabled to save memory
+  apply_to_detr_decoder: false     # DETR-style transformer decoder - Can be disabled to save memory
+  apply_to_mask_decoder: true      # Mask prediction head - Essential
+
+# Training settings
+training:
+  data_dir: "/root/autodl-tmp/sam3_finetune_dataset/data"  # User's data directory
+  batch_size: 2      # Conservative for 32GB GPU
+  num_workers: 2
+
+  learning_rate: 5e-5        # Good starting point for SAM3 fine-tuning
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+  max_grad_norm: 1.0
+
+  num_epochs: 100       # Good for fine-tuning
+  warmup_steps: 200     # Proportional to dataset size
+  lr_scheduler: "cosine"
+
+  logging_steps: 10
+  eval_steps: 50        # Frequent validation
+  save_steps: 50        # Frequent checkpoints
+  save_total_limit: 5
+
+  mixed_precision: "bf16"    # Use bfloat16 if available
+  seed: 42
+  gradient_accumulation_steps: 4  # Effective batch size: 2×4=8
+
+output:
+  output_dir: "outputs/sam3_finetune_mine"
+  logging_dir: "logs"
+  save_lora_only: true
+  push_to_hub: false
+  hub_model_id: null
+
+evaluation:
+  metric: "iou"
+  save_predictions: false
+  compute_metrics_during_training: true
+
+hardware:
+  device: "cuda"
+  dataloader_pin_memory: true
+  use_compile: false
