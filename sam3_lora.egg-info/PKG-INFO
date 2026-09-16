@@ -1,0 +1,288 @@
+Metadata-Version: 2.4
+Name: sam3-lora
+Version: 0.1.0
+Summary: Standalone LoRA fine-tuning for SAM3
+Home-page: https://github.com/yourusername/sam3_lora
+Author: Your Name
+Author-email: your.email@example.com
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.7.0
+Requires-Dist: torchvision>=0.19.0
+Requires-Dist: transformers>=4.48.0
+Requires-Dist: huggingface-hub>=0.26.0
+Requires-Dist: Pillow>=10.0.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: opencv-python>=4.8.0
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: tqdm>=4.65.0
+Requires-Dist: matplotlib>=3.7.0
+Requires-Dist: scipy>=1.10.0
+Requires-Dist: pycocotools>=2.0.6
+Requires-Dist: pandas>=1.5.0
+Requires-Dist: scikit-image>=0.21.0
+Requires-Dist: scikit-learn>=1.3.0
+Requires-Dist: hydra-core>=1.3.0
+Requires-Dist: omegaconf>=2.3.0
+Requires-Dist: submitit>=1.4.0
+Requires-Dist: iopath>=0.1.10
+Requires-Dist: decord>=0.6.0
+Requires-Dist: einops>=0.6.0
+Requires-Dist: open-clip-torch>=2.20.0
+Requires-Dist: openai>=1.0.0
+Requires-Dist: ftfy>=6.1.0
+Requires-Dist: regex>=2023.0.0
+Requires-Dist: psutil>=5.9.0
+Requires-Dist: torchmetrics>=1.0.0
+Requires-Dist: typing-extensions>=4.5.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Requires-Dist: flake8>=6.0.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# SAM3-LoRA: 基于低秩自适应 (LoRA) 的高效微调
+
+<div align="center">
+
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+
+**仅需训练约 1% 的参数即可微调 SAM3 分割模型**
+
+[快速开始](#快速开始) • [项目架构](#项目架构) • [训练指南](#训练指南) • [推理使用](#推理使用) • [实际案例](#实际案例混凝土裂缝检测) • [配置说明](#配置说明)
+
+</div>
+
+---
+
+## 项目概述 (Overview)
+
+本项目旨在使用 **LoRA (Low-Rank Adaptation)** 技术对 SAM3 (Segment Anything Model 3) 进行微调。LoRA 是一种参数高效的微调方法，可以将可训练参数量从 100% 降低到约 1%，同时保持甚至提升模型在特定任务上的性能。
+
+### 最近更新 (Recent Updates)
+
+**2026-02-03**:
+- **修复了训练/验证中的多类别分配 Bug**：之前在处理包含多个类别的图像时，会将所有对象错误分配给出现频率最高的类别。
+- 现在会根据每个类别创建独立的查询 (Query)，并将每个对象映射到其真实的类别。
+- 涉及文件：`scripts/training/train_sam3_lora_native.py`, `scripts/training/train_sam3_lora_with_categories.py`, `scripts/inference/validate_sam3_lora.py`。
+
+**2026-01-31**:
+- 在 `infer_sam.py` 中将 `--no-boxes` 替换为 `--boundingbox` 选项。
+- 新增 `--boundingbox True/False` 标志用于显式控制边界框显示（默认为 False）。
+
+**2026-01-04**:
+- **新增多 GPU 训练支持**：基于 DistributedDataParallel (DDP)。
+- 新增 `--device` 参数方便选择 GPU：例如 `--device 0 1 2 3`。
+- 当指定多个 GPU 时自动通过 `torchrun` 启动。
+
+
+### 为什么选择本项目？
+
+- ✅ **消费级 GPU 友好**：仅需 16GB 显存即可训练，无需 A100 (80GB)。
+- ✅ **极小的权重文件**：LoRA 权重仅 10-50MB，远小于原始模型的 3GB。
+- ✅ **快速迭代**：更少的内存占用带来更快的训练速度。
+- ✅ **简单易用**：支持 YAML 配置和简洁的命令行接口 (CLI)。
+- ✅ **生产就绪**：提供完整的训练、推理和验证流水线。
+- ✅ **多 GPU 支持**：支持通过 `--device` 扩展到多卡并行训练。
+
+### 什么是 LoRA？
+
+LoRA 不直接微调模型的所有权重，而是在原有权重旁边注入小的训练矩阵：
+```
+W' = W_frozen + B×A  (其中 rank << model_dim)
+```
+**结果**：仅需训练约 1% 的参数，原始模型权重保持冻结。
+
+### 项目架构 (Architecture)
+
+SAM3-LoRA 将低秩自适应应用于 SAM3 架构的核心组件：
+
+<div align="center">
+<img src="asset/Screenshot 2568-12-06 at 07.00.16.png" alt="SAM3 Architecture with LoRA" width="900">
+<br>
+<em>应用了完整 LoRA 适配的 SAM3 模型架构</em>
+</div>
+
+<br>
+
+**LoRA 适配器应用于：**
+
+| 组件 | 描述 | LoRA 影响 |
+|-----------|-------------|-------------|
+| **视觉编码器 (ViT)** | 从输入图像中提取视觉特征 | 高 - 核心特征学习 |
+| **文本编码器** | 处理用于引导分割的文本提示 (Prompts) | 中 - 语义理解 |
+| **几何编码器** | 处理几何提示（点、框） | 中 - 空间推理 |
+| **DETR 编码器** | 用于目标检测的 Transformer 编码器 | 高 - 场景理解 |
+| **DETR 解码器** | 用于对象查询的 Transformer 解码器 | 高 - 对象定位 |
+| **掩码解码器 (Mask Decoder)** | 生成最终的分割掩码 | 高 - 精细化分割 |
+
+---
+
+## 安装指南 (Installation)
+
+### 环境要求
+- Python 3.8+, PyTorch 2.0+, CUDA (可选), 具有 SAM3 访问权限的 Hugging Face 账号。
+
+### 安装步骤
+
+1. **申请 SAM3 访问权限**：访问 [facebook/sam3 on Hugging Face](https://huggingface.co/facebook/sam3) 并提交申请。
+2. **克隆并安装依赖**：
+```bash
+git clone https://github.com/doublefei0702/sam3_finetune_lora.git
+cd sam3_finetune_lora
+pip install -e .
+```
+3. **登录 Hugging Face**：
+```bash
+huggingface-cli login
+# 输入你的 Access Token
+```
+
+---
+
+## 快速入门 (Quick Start)
+
+### 1. 准备数据
+将数据集整理为 **COCO 格式**，每个拆分（train/valid）包含一个标注文件：
+
+```
+data/
+├── train/                    # 必须
+│   ├── img001.jpg
+│   └── _annotations.coco.json
+├── valid/                    # 强烈建议
+│   ├── img001.jpg
+│   └── _annotations.coco.json
+```
+
+### 2. 训练模型
+使用默认配置启动训练：
+```bash
+python scripts/training/train_sam3_lora_native.py
+```
+或者指定自定义配置文件：
+```bash
+python scripts/training/train_sam3_lora_native.py --config configs/full_lora_config.yaml
+```
+
+**验证策略**：训练期间仅计算 **验证损失 (Loss)** 以确保速度；训练完成后，运行 `validate_sam3_lora.py` 获取完整的指标（mAP, cgF1）。
+
+### 3. 执行推理
+使用训练好的模型进行预测：
+```bash
+python scripts/inference/infer_sam.py \
+  --config configs/full_lora_config.yaml \
+  --image test_image.jpg \
+  --prompt "yellow school bus" \
+  --output predictions.png
+```
+
+---
+
+## 训练指南 (Training)
+
+### 多 GPU 训练
+使用 `--device` 参数指定多个 GPU，脚本会自动处理分布式设置：
+```bash
+# 使用 GPU 0 和 1 进行训练
+python scripts/training/train_sam3_lora_native.py --device 0 1
+```
+
+### 自定义配置 (YAML)
+在配置文件中调整 LoRA 参数：
+```yaml
+lora:
+  rank: 16                    # LoRA 秩 (越高容量越大)
+  alpha: 32                   # 缩放因子 (通常为 2×rank)
+  target_modules: ["q_proj", "v_proj"] # 目标层
+  apply_to_vision_encoder: true        # 应用于视觉编码器
+  apply_to_mask_decoder: true          # 应用于掩码解码器
+```
+
+---
+
+## 推理使用 (Inference)
+
+`infer_sam.py` 支持多种高级功能：
+
+- **多文本提示**：`--prompt "crack" "damage"`
+- **NMS 过滤**：通过 `--nms-iou 0.3` 减少重叠框（0.3 更严格，0.7 更宽松）。
+- **边界框显示**：`--boundingbox True`
+- **置信度阈值**：`--threshold 0.3`
+
+---
+
+## 实际案例：混凝土裂缝检测
+
+SAM3-LoRA 在结构缺陷检测方面表现出色。
+
+<div align="center">
+<img src="asset/output.png" alt="Concrete Crack Detection" width="600">
+</div>
+
+**示例命令：**
+```bash
+python scripts/inference/infer_sam.py \
+  --config configs/full_lora_config.yaml \
+  --image concrete.jpg \
+  --prompt "concrete crack" \
+  --threshold 0.3 \
+  --output crack_detection.png
+```
+
+---
+
+## 常见问题排查 (Troubleshooting)
+
+- **显存溢出 (OOM)**：减小 `batch_size` 或 `rank`。建议使用 `configs/light_lora_config.yaml`。
+- **损失不下降**：尝试增大学习率 (`learning_rate`) 或 `rank`。
+- **可训练参数过多**：如果超过 50%，说明基础模型未正确冻结（已在最新版修复）。
+- **无验证数据**：脚本会运行但无法保存“最佳”模型，仅能保存“最后”一轮的模型。
+
+---
+
+## 项目结构 (Project Structure)
+
+- `docs/`: 所有的项目指南和说明文档。
+- `scripts/training/`: 训练脚本（单卡/多卡）。
+- `scripts/inference/`: 推理、验证和模型对比工具。
+- `scripts/tools/`: 数据预处理、分析工具。
+- `sam3/`: SAM3 核心库。
+- `lora_layers.py`: LoRA 核心实现逻辑。
+- `ruff.toml`: 代码规范配置文件。
+
+---
+
+## 开源协议 (License)
+
+本项目采用 Apache 2.0 协议。详见 [LICENSE](LICENSE) 文件。
+
+---
+
+<div align="center">
+
+**版本**: 1.0.0 | **构建者**: AI Research Group, KMUTT
+
+[⬆ 返回顶部](#sam3-lora-基于低秩自适应-lora-的高效微调)
+
+</div>
