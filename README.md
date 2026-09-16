@@ -10,8 +10,8 @@
 
 We introduce a cross-domain referring remote sensing image segmentation task, construct the first benchmark dataset (VPRef), and propose a simple yet effective baseline (SAM3-ft).
 
-[VaihingenRef](https://drive.google.com/drive/folders/1rsXO1Kd9GG_s_Daz7ct1y0Q_0xcrIjt0?usp=drive_link) 
-[PotsdamRef](https://drive.google.com/drive/folders/1bShsNTZou15VphQRlIDwZQs-p-v-3h0h?usp=drive_link) 
+- [VaihingenRef](https://drive.google.com/drive/folders/1rsXO1Kd9GG_s_Daz7ct1y0Q_0xcrIjt0?usp=drive_link) 
+- [PotsdamRef](https://drive.google.com/drive/folders/1bShsNTZou15VphQRlIDwZQs-p-v-3h0h?usp=drive_link) 
 
 
 
