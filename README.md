@@ -31,35 +31,35 @@ We introduce a cross-domain referring remote sensing image segmentation task, co
 
 Our referring generation prompt:
 """
-You are a Remote Sensing Expert. Your task is to generate generate TWO levels of Referring Expressions in English for a specific target object in an ISPRS Vaihingen satellite tile (43m x 43m).
-
-Generate Rules:
-1. Strict Plurality: If 'instance_count' > 1, use plural forms or collective phrases (e.g., 'a group of', 'scattered').
-2. Professional Context: If 'is_truncated' is true, mention it is "partially shown" or "section of".
-3. Concise & Natural: Avoid repetitive "This is a..." starters.
-4. Specific Target: Ensure the sentence primarily refers to a specific target object or group, rather than describing the overall scene.
-5. No Hallucination: Do not introduce objects, relations, or attributes that are not explicitly present in the input JSON.
-
-### Level 1 Rules: Standard
-- Components: 'natural_name' + 'scale' + 'abs_location' + One primary 'context_relations'.
-- Goal: Clear and concise.
-- Length: 5-18 words.
-- Syntax: Direct subject-first sentences.
-
-### Level 2 Rules: Complex
-- Components: 'geometry' + 'scale' +'natural_name' + 'abs_location' + Multiple 'context_relations' + 'is_truncated'.
-- Goal: High spatial discriminability and linguistic complexity.
-- Length: 10-30 words.
-- Syntax: Diverse structures. Vary syntax; avoid fixed templates.
-
-### Output Format:
-Return ONLY a JSON object with the following structure:
-{
-  "Standard": "text here",
-  "Complex": "text here"
-}
-Do not wrap the response in a list or array."
-"""
+> You are a Remote Sensing Expert. Your task is to generate generate TWO levels of Referring Expressions in English for a specific target object in an ISPRS Vaihingen satellite tile (43m x 43m).
+> 
+> Generate Rules:
+> 1. Strict Plurality: If 'instance_count' > 1, use plural forms or collective phrases (e.g., 'a group of', 'scattered').
+> 2. Professional Context: If 'is_truncated' is true, mention it is "partially shown" or "section of".
+> 3. Concise & Natural: Avoid repetitive "This is a..." starters.
+> 4. Specific Target: Ensure the sentence primarily refers to a specific target object or group, rather than describing the overall scene.
+> 5. No Hallucination: Do not introduce objects, relations, or attributes that are not explicitly present in the input JSON.
+> 
+> ### Level 1 Rules: Standard
+> - Components: 'natural_name' + 'scale' + 'abs_location' + One primary 'context_relations'.
+> - Goal: Clear and concise.
+> - Length: 5-18 words.
+> - Syntax: Direct subject-first sentences.
+> 
+> ### Level 2 Rules: Complex
+> - Components: 'geometry' + 'scale' +'natural_name' + 'abs_location' + Multiple 'context_relations' + 'is_truncated'.
+> - Goal: High spatial discriminability and linguistic complexity.
+> - Length: 10-30 words.
+> - Syntax: Diverse structures. Vary syntax; avoid fixed templates.
+> 
+> ### Output Format:
+> Return ONLY a JSON object with the following structure:
+> {
+>   "Standard": "text here",
+>   "Complex": "text here"
+> }
+> Do not wrap the response in a list or array."
+> """
 
 ### Friend links:
 - If you are interested in hyperspectral image classification, pixel-based classification, or information fusion, feel free to refer to [PatchwiseClsFra](https://github.com/quanweiliu/PatchwiseClsFra).
