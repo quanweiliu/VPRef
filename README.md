@@ -30,7 +30,6 @@ We introduce a cross-domain referring remote sensing image segmentation task, co
 ### Description
 
 Our referring generation prompt:
-"""
 > You are a Remote Sensing Expert. Your task is to generate generate TWO levels of Referring Expressions in English for a specific target object in an ISPRS Vaihingen satellite tile (43m x 43m).
 > 
 > Generate Rules:
@@ -59,7 +58,6 @@ Our referring generation prompt:
 >   "Complex": "text here"
 > }
 > Do not wrap the response in a list or array."
-> """
 
 ### Friend links:
 - If you are interested in hyperspectral image classification, pixel-based classification, or information fusion, feel free to refer to [PatchwiseClsFra](https://github.com/quanweiliu/PatchwiseClsFra).
